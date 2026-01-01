@@ -51,7 +51,7 @@ export function ProductFilters({
   }, []);
 
   return (
-    <div className="mb-4 space-y-3 sticky top-0 z-10 bg-background/95 backdrop-blur pb-2">
+    <div className="mb-3 md:mb-4 space-y-2 md:space-y-3 sticky top-0 z-10 bg-background/95 backdrop-blur pb-2">
       <div className="relative w-full max-w-2xl">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -59,7 +59,7 @@ export function ProductFilters({
           placeholder="Search products... (Ctrl+F)"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 pr-10 h-11"
+          className="pl-10 pr-10 h-10 md:h-11 text-sm md:text-base"
         />
         {searchQuery && (
           <Button
@@ -78,13 +78,13 @@ export function ProductFilters({
           </kbd>
         </div>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide">
         <Button
           variant={selectedCategory === 'all' ? 'default' : 'outline'}
           size="sm"
           onClick={() => onCategoryChange('all')}
           className={cn(
-            "text-xs shrink-0",
+            "text-xs md:text-sm shrink-0 h-9 md:h-10 px-3 md:px-4 touch-manipulation",
             selectedCategory === 'all' && "bg-primary text-primary-foreground font-semibold"
           )}
         >
@@ -108,7 +108,7 @@ export function ProductFilters({
               size="sm"
               onClick={() => onCategoryChange(categoryName)}
               className={cn(
-                "text-xs shrink-0",
+                "text-xs md:text-sm shrink-0 h-9 md:h-10 px-3 md:px-4 touch-manipulation",
                 isActive && "bg-primary text-primary-foreground font-semibold"
               )}
             >

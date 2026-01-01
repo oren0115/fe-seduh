@@ -51,8 +51,8 @@ export function Cart({
   };
 
   return (
-    <div className="lg:col-span-1 flex flex-col border rounded-lg bg-card shadow-sm">
-      <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+    <div className="md:col-span-1 lg:col-span-1 flex flex-col border rounded-lg bg-card shadow-sm min-h-0 h-full">
+      <div className="p-3 md:p-4 border-b flex items-center justify-between bg-muted/30 flex-shrink-0">
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />
           <h2 className="font-semibold">Cart</h2>
@@ -83,7 +83,7 @@ export function Cart({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 min-h-0">
         {cart.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <ShoppingCart className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -131,7 +131,7 @@ export function Cart({
       </Dialog>
 
       {cart.length > 0 && (
-        <div className="border-t p-4 space-y-3 bg-muted/30">
+        <div className="border-t p-3 md:p-4 space-y-3 bg-muted/30 flex-shrink-0">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Subtotal:</span>
@@ -176,7 +176,7 @@ export function Cart({
             </div>
           </div>
           <Button
-            className="w-full h-12 text-lg font-semibold"
+            className="w-full h-12 md:h-14 text-base md:text-lg font-semibold touch-manipulation"
             onClick={onCheckout}
             size="lg"
             disabled={!activeShift}

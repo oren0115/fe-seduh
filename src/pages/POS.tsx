@@ -13,7 +13,10 @@ import { Cart } from '@/components/pos/Cart';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
 import { ReceiptDialog } from '@/components/pos/ReceiptDialog';
 import { CheckoutDialog } from '@/components/pos/CheckoutDialog';
+import { TransactionHistoryDialog } from '@/components/pos/TransactionHistoryDialog';
+import { useNotifications } from '@/components/NotificationDropdown';
 import { calculateTotal } from '@/utils/calculations';
+import { formatCurrency } from '@/utils/currency';
 
 export default function POS() {
   const { user } = useAuth();
@@ -72,9 +75,19 @@ export default function POS() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [checkOutDialogOpen, setCheckOutDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'QRIS' | 'E-WALLET'>('CASH');
   const [cashReceived, setCashReceived] = useState<number>();
   const [change, setChange] = useState<number>();
+
+  // Notifications
+  const {
+    notifications,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+  } = useNotifications();
 
   // Calculations
   const total = useMemo(() => calculateTotal(subtotal, discountTotal), [subtotal, discountTotal]);
@@ -140,6 +153,13 @@ export default function POS() {
       );
 
       if (transaction) {
+        // Add notification for successful payment
+        addNotification({
+          type: 'success',
+          title: 'Payment Successful',
+          message: `Transaction ${transaction.transactionNumber} completed. Total: ${formatCurrency(transaction.total)}`,
+        });
+
         clearCart();
         clearPromotions();
         setPaymentDialogOpen(false);
@@ -160,6 +180,13 @@ export default function POS() {
     
     // Close payment dialog
     setPaymentDialogOpen(false);
+    
+    // Add notification for payment initiated
+    addNotification({
+      type: 'info',
+      title: 'Payment Initiated',
+      message: 'Payment processing started. Please complete the payment in the popup window.',
+    });
     
     // Clear cart and promotions
     clearCart();
@@ -193,10 +220,15 @@ export default function POS() {
         checkOutLoading={checkOutLoading}
         onCheckIn={checkIn}
         onCheckOut={handleCheckOut}
+        onHistoryClick={() => setHistoryDialogOpen(true)}
+        notifications={notifications}
+        onMarkNotificationAsRead={markAsRead}
+        onMarkAllNotificationsAsRead={markAllAsRead}
+        onClearAllNotifications={clearAll}
       />
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 overflow-hidden">
-        <div className="lg:col-span-2 flex flex-col overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] lg:grid-cols-3 gap-3 md:gap-4 p-3 md:p-4 overflow-hidden">
+        <div className="md:col-span-1 lg:col-span-2 flex flex-col overflow-hidden">
           <ProductFilters
             searchQuery={searchQuery}
             selectedCategory={selectedCategory}
@@ -264,6 +296,13 @@ export default function POS() {
         open={checkOutDialogOpen}
         onOpenChange={setCheckOutDialogOpen}
         checkOutResult={checkOutResult}
+      />
+
+      <TransactionHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        activeShift={activeShift}
+        userId={user?._id}
       />
     </div>
   );

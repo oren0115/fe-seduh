@@ -13,21 +13,21 @@ interface CartItemProps {
 export function CartItem({ item, onUpdateQty, onRemove }: CartItemProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-3">
+      <CardContent className="p-3 md:p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-sm truncate">{item.productName}</h4>
-            <p className="text-xs text-muted-foreground">
+            <h4 className="font-medium text-sm md:text-base truncate">{item.productName}</h4>
+            <p className="text-xs md:text-sm text-muted-foreground">
               {formatCurrency(item.price)} × {item.qty}
             </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-destructive shrink-0"
+            className="h-8 w-8 md:h-9 md:w-9 text-destructive shrink-0 touch-manipulation"
             onClick={() => onRemove(item.productId)}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex items-center justify-between">
@@ -35,22 +35,22 @@ export function CartItem({ item, onUpdateQty, onRemove }: CartItemProps) {
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-9 w-9 md:h-10 md:w-10 touch-manipulation"
               onClick={() => onUpdateQty(item.productId, -1)}
             >
-              <Minus className="h-3 w-3" />
+              <Minus className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium w-8 text-center">{item.qty}</span>
+            <span className="text-sm md:text-base font-medium w-10 md:w-12 text-center">{item.qty}</span>
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-9 w-9 md:h-10 md:w-10 touch-manipulation"
               onClick={() => onUpdateQty(item.productId, 1)}
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-sm font-semibold text-primary">
+          <p className="text-sm md:text-base font-semibold text-primary">
             {formatCurrency(item.subtotal)}
           </p>
         </div>

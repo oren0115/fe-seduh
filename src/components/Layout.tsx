@@ -16,10 +16,11 @@ import {
   Search,
   Calendar,
   FolderTree,
-  Bell,
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -31,7 +32,8 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { NotificationDropdown, useNotifications } from './NotificationDropdown';
 
 interface LayoutProps {
   children: ReactNode;
@@ -59,6 +61,7 @@ const ownerNavigation = [
     items: [
       { name: 'Reports', href: '/reports', icon: BarChart3, badge: null },
       { name: 'Promotions', href: '/promotions', icon: Tag, badge: null },
+      { name: 'History', href: '/history', icon: History, badge: null },
     ]
   },
   { 
@@ -76,6 +79,49 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
+    Operations: true,
+    Analytics: true,
+    Settings: true,
+  });
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+  } = useNotifications();
+
+  // Auto-open accordion if current path matches items in that group
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const accordionGroups = ['Operations', 'Analytics', 'Settings'];
+    const currentNavigation = user?.role === 'OWNER' ? ownerNavigation : [
+      { 
+        group: 'Main', 
+        items: [
+          { name: 'POS', href: '/pos', icon: ShoppingCart, badge: null },
+        ]
+      },
+    ];
+    
+    accordionGroups.forEach((groupName) => {
+      const group = currentNavigation.find(nav => nav.group === groupName);
+      if (group) {
+        const hasMatchingPath = group.items.some(item => item.href === currentPath);
+        if (hasMatchingPath) {
+          setOpenAccordions(prev => {
+            if (!prev[groupName]) {
+              return {
+                ...prev,
+                [groupName]: true
+              };
+            }
+            return prev;
+          });
+        }
+      }
+    });
+  }, [location.pathname, user?.role]);
 
   const handleLogout = async () => {
     await logout();
@@ -136,54 +182,134 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-            {navigation.map((group, groupIndex) => (
-              <div key={group.group} className="space-y-2">
-                {!sidebarCollapsed && groupIndex > 0 && (
-                  <div className="h-px bg-border mx-2 my-4" />
-                )}
-                {!sidebarCollapsed && (
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
-                    {group.group}
-                  </p>
-                )}
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = location.pathname === item.href;
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group",
-                          "hover:bg-accent/50",
-                          isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-accent-foreground"
-                        )}
-                        title={sidebarCollapsed ? item.name : undefined}
-                      >
-                        <Icon className={cn(
-                          "h-5 w-5 flex-shrink-0",
-                          isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-accent-foreground"
-                        )} />
-                        {!sidebarCollapsed && (
-                          <>
-                            <span className="font-medium text-sm flex-1">{item.name}</span>
-                            {item.badge && (
-                              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/20 text-primary">
-                                {item.badge}
-                              </span>
+            {navigation.map((group, groupIndex) => {
+              const isAccordionGroup = ['Operations', 'Analytics', 'Settings'].includes(group.group);
+              const isOpen = openAccordions[group.group] ?? false;
+              
+              const toggleAccordion = () => {
+                if (!sidebarCollapsed) {
+                  setOpenAccordions(prev => ({
+                    ...prev,
+                    [group.group]: !prev[group.group]
+                  }));
+                }
+              };
+              
+              return (
+                <div key={group.group} className="space-y-2">
+                  {!sidebarCollapsed && groupIndex > 0 && (
+                    <div className="h-px bg-border mx-2 my-4" />
+                  )}
+                  
+                  {isAccordionGroup ? (
+                    <>
+                      {!sidebarCollapsed && (
+                        <button
+                          onClick={toggleAccordion}
+                          className="flex items-center justify-between w-full px-3 py-2 rounded-lg transition-all duration-200 hover:bg-accent/50 group"
+                        >
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            {group.group}
+                          </p>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                              isOpen ? "transform rotate-180" : ""
                             )}
-                          </>
+                          />
+                        </button>
+                      )}
+                      <div
+                        className={cn(
+                          "space-y-1 overflow-hidden transition-all duration-300 ease-in-out",
+                          !sidebarCollapsed && (!isOpen ? "max-h-0" : "max-h-96")
                         )}
-                      </Link>
-                    );
-                  })}
+                      >
+                        {group.items.map((item) => {
+                          const isActive = location.pathname === item.href;
+                          const Icon = item.icon;
+                          return (
+                              <Link
+                              key={item.name}
+                                to={item.href}
+                                onClick={() => setSidebarOpen(false)}
+                                className={cn(
+                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group",
+                                "hover:bg-accent/50",
+                                isActive
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-muted-foreground hover:text-accent-foreground",
+                                !sidebarCollapsed && "ml-2"
+                                )}
+                              title={sidebarCollapsed ? item.name : undefined}
+                              >
+                              <Icon className={cn(
+                                "h-5 w-5 flex-shrink-0",
+                                isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-accent-foreground"
+                              )} />
+                              {!sidebarCollapsed && (
+                                <>
+                                  <span className="font-medium text-sm flex-1">{item.name}</span>
+                                  {item.badge && (
+                                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/20 text-primary">
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                              </Link>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {!sidebarCollapsed && (
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+                          {group.group}
+                        </p>
+                      )}
+                      <div className="space-y-1">
+                        {group.items.map((item) => {
+                          const isActive = location.pathname === item.href;
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.href}
+                              onClick={() => setSidebarOpen(false)}
+                              className={cn(
+                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group",
+                                "hover:bg-accent/50",
+                                isActive
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-muted-foreground hover:text-accent-foreground"
+                              )}
+                              title={sidebarCollapsed ? item.name : undefined}
+                            >
+                              <Icon className={cn(
+                                "h-5 w-5 flex-shrink-0",
+                                isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-accent-foreground"
+                              )} />
+                              {!sidebarCollapsed && (
+                                <>
+                                  <span className="font-medium text-sm flex-1">{item.name}</span>
+                                  {item.badge && (
+                                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/20 text-primary">
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
 
           {/* User Profile Section */}
@@ -272,7 +398,8 @@ export default function Layout({ children }: LayoutProps) {
                     location.pathname === '/shifts' ? 'Shifts' :
                     location.pathname === '/reports' ? 'Reports' :
                     location.pathname === '/promotions' ? 'Promotions' :
-                    location.pathname === '/attendance' ? 'Attendance' : 'Overview'}
+                    location.pathname === '/attendance' ? 'Attendance' :
+                    location.pathname === '/history' ? 'History' : 'Overview'}
                  </h1>
                  <p className="text-sm text-muted-foreground">
                    {location.pathname === '/' ? 'Manage and monitoring your sales with one page.' :
@@ -283,6 +410,7 @@ export default function Layout({ children }: LayoutProps) {
                     location.pathname === '/reports' ? 'View detailed sales and transaction reports.' :
                     location.pathname === '/promotions' ? 'Create and manage promotions and discounts.' :
                     location.pathname === '/attendance' ? 'View attendance records and summaries.' :
+                    location.pathname === '/history' ? 'View and manage all transaction records.' :
                     'Manage and monitoring your sales with one page.'}
                  </p>
                 </div>
@@ -297,10 +425,12 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   
                   {/* Notifications */}
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-background" />
-                  </Button>
+                  <NotificationDropdown
+                    notifications={notifications}
+                    onMarkAsRead={markAsRead}
+                    onMarkAllAsRead={markAllAsRead}
+                    onClearAll={clearAll}
+                  />
                   
                   <ThemeToggle />
                 </div>

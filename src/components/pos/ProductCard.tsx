@@ -97,9 +97,9 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
             aria-disabled={!isAvailable}
             onKeyDown={handleKeyDown}
           >
-            <CardContent className="p-3 md:p-4">
+            <CardContent className="p-2.5 md:p-3">
               {/* Image Container */}
-              <div className="relative w-full h-32 md:h-36 rounded-lg mb-3 overflow-hidden bg-muted">
+              <div className="relative w-full aspect-square rounded-lg mb-2 overflow-hidden bg-muted">
                 {product.imageUrl ? (
                   <img
                     src={getImageUrl(product.imageUrl)}
@@ -118,12 +118,12 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
                 )}
                 
                 {/* Top Right Corner - Add Button & Quantity Badge */}
-                <div className="absolute top-2 right-2 flex flex-col items-end gap-2">
+                <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1.5">
                   {/* Quantity Badge (always visible if in cart) */}
                   {isInCart && (
                     <Badge 
                       className={cn(
-                        "h-8 w-8 rounded-full p-0 flex items-center justify-center font-bold text-xs",
+                        "h-7 w-7 rounded-full p-0 flex items-center justify-center font-bold text-xs",
                         "bg-primary text-primary-foreground shadow-lg",
                         "animate-in fade-in zoom-in duration-200"
                       )}
@@ -133,13 +133,14 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
                     </Badge>
                   )}
                   
-                  {/* Add Button (corner, touch-friendly) */}
-                  {isHovered && isAvailable && (
+                  {/* Add Button (corner, touch-friendly) - Always visible on tablet/mobile via CSS */}
+                  {isAvailable && (
                     <Button
                       size="icon"
                       className={cn(
-                        "h-11 w-11 rounded-full bg-primary hover:bg-primary/90 shadow-lg",
-                        "transition-all duration-200",
+                        "h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary hover:bg-primary/90 shadow-lg",
+                        "transition-all duration-200 touch-manipulation",
+                        "md:opacity-0 md:group-hover:opacity-100 opacity-100",
                         "animate-in fade-in zoom-in duration-200",
                         showSuccess && "bg-green-500 hover:bg-green-600"
                       )}
@@ -148,25 +149,25 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
                       aria-label={`Add ${product.name} to cart`}
                     >
                       {showSuccess ? (
-                        <CheckCircle2 className="h-5 w-5" />
+                        <CheckCircle2 className="h-4 w-4" />
                       ) : (
-                        <Plus className="h-5 w-5" />
+                        <Plus className="h-4 w-4" />
                       )}
                     </Button>
                   )}
                 </div>
 
                 {/* Top Left - Badges (Best Seller, Low Stock) */}
-                <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+                <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
                   {isBestSeller && (
-                    <Badge className="bg-yellow-500 text-white border-0 text-[10px] px-1.5 py-0.5 shadow-md">
-                      <Star className="h-2.5 w-2.5 mr-1" />
+                    <Badge className="bg-yellow-500 text-white border-0 text-[9px] px-1.5 py-0.5 shadow-md">
+                      <Star className="h-2 w-2 mr-0.5" />
                       Best
                     </Badge>
                   )}
                   {isLowStock && (
-                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5 shadow-md">
-                      <AlertTriangle className="h-2.5 w-2.5 mr-1" />
+                    <Badge variant="destructive" className="text-[9px] px-1.5 py-0.5 shadow-md">
+                      <AlertTriangle className="h-2 w-2 mr-0.5" />
                       Low
                     </Badge>
                   )}
@@ -175,33 +176,30 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
                 {/* Success Overlay Animation */}
                 {showSuccess && (
                   <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center animate-in fade-in duration-300">
-                    <div className="bg-white/90 rounded-full p-2 shadow-lg animate-in zoom-in duration-300">
-                      <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    <div className="bg-white/90 rounded-full p-1.5 shadow-lg animate-in zoom-in duration-300">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Product Info - Improved Layout */}
-              <div className="space-y-2">
-                {/* Product Name - Bold, Larger */}
-                <h3 
-                  className={cn(
-                    "font-bold text-base leading-tight line-clamp-2",
-                    "group-hover:text-primary transition-colors",
-                    "min-h-[2.5rem]" // Ensure consistent height
-                  )}
-                  title={product.name}
-                >
-                  {product.name}
-                </h3>
-
-                {/* Category - Smaller, Muted */}
-                <div className="flex items-center gap-2">
+              {/* Product Info - Compact Layout */}
+              <div className="space-y-1.5">
+                {/* Product Name and Category Row */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 
+                    className={cn(
+                      "font-semibold text-sm leading-tight line-clamp-2 flex-1 min-w-0",
+                      "group-hover:text-primary transition-colors"
+                    )}
+                    title={product.name}
+                  >
+                    {product.name}
+                  </h3>
                   <Badge 
                     variant="outline" 
                     className={cn(
-                      "text-[10px] px-2 py-0.5 h-5",
+                      "text-[10px] px-1.5 py-0.5 h-4 shrink-0",
                       getCategoryColor(product.category)
                     )}
                   >
@@ -209,60 +207,46 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
                   </Badge>
                 </div>
 
-                {/* Price - Prominent */}
-                <p className="text-2xl md:text-2xl font-bold text-primary leading-none">
-                  {formatCurrency(product.price)}
-                </p>
-
-                {/* Stock Info - More Informative */}
-                {product.stock !== null ? (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <Package className={cn(
-                          "h-3.5 w-3.5",
-                          isLowStock ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"
-                        )} />
-                        <span className={cn(
-                          "font-medium",
-                          isLowStock ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"
-                        )}>
-                          Stock: {product.stock}
-                        </span>
-                      </div>
+                {/* Price and Stock Row */}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-base md:text-lg font-bold text-primary leading-none">
+                    {formatCurrency(product.price)}
+                  </p>
+                  
+                  {/* Stock Info - Compact */}
+                  {product.stock !== null && (
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+                      <Package className={cn(
+                        "h-3 w-3",
+                        isLowStock ? "text-orange-600 dark:text-orange-400" : ""
+                      )} />
+                      <span className={cn(
+                        isLowStock ? "text-orange-600 dark:text-orange-400 font-medium" : ""
+                      )}>
+                        {product.stock}
+                      </span>
                       {product.stock <= 20 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {Math.round(stockPercentage)}%
-                        </span>
+                        <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full transition-all duration-300",
+                              isLowStock 
+                                ? "bg-orange-500" 
+                                : "bg-primary"
+                            )}
+                            style={{ width: `${stockPercentage}%` }}
+                          />
+                        </div>
                       )}
                     </div>
-                    
-                    {/* Visual Stock Indicator */}
-                    {product.stock <= 20 && (
-                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full transition-all duration-300",
-                            isLowStock 
-                              ? "bg-gradient-to-r from-orange-500 to-orange-400" 
-                              : "bg-gradient-to-r from-primary to-primary/80"
-                          )}
-                          style={{ width: `${stockPercentage}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  // Non-inventory product
-                  <div className="pt-1">
-                    {!isAvailable && (
-                      <p className="text-xs text-destructive font-semibold flex items-center gap-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        Out of Stock
-                      </p>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {product.stock === null && !isAvailable && (
+                    <p className="text-[10px] text-destructive font-medium flex items-center gap-1 shrink-0">
+                      <AlertTriangle className="h-3 w-3" />
+                      Out
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

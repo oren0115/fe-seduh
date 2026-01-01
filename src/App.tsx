@@ -11,6 +11,7 @@ import Reports from './pages/Reports'
 import Promotions from './pages/Promotions'
 import Attendance from './pages/Attendance'
 import Shifts from './pages/Shifts'
+import History from './pages/History'
 import POS from './pages/POS'
 import { Toaster } from './components/ui/toaster'
 
@@ -109,6 +110,16 @@ function AppRoutes() {
             <ProtectedRoute requiredRole="OWNER">
               <Layout>
                 <Shifts />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute requiredRole="OWNER">
+              <Layout>
+                <History />
               </Layout>
             </ProtectedRoute>
           }
