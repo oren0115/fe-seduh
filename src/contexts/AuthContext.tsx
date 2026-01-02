@@ -55,6 +55,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (credentials: LoginCredentials) => {
     const response = await authService.login(credentials);
     setUser(response.user);
+    
+    // Debug: Log token info after login (development only)
+    if (import.meta.env.DEV) {
+      const expiryTime = authService.getTokenExpiryTime();
+      console.log('[AUTH] Login successful');
+      console.log('[AUTH] Token expiry time:', expiryTime, 'minutes');
+      console.log('[AUTH] Token stored:', !!localStorage.getItem('token'));
+    }
   };
 
   const logout = async () => {

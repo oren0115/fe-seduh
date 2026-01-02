@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function KDS() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const station = (searchParams.get('station') || 'BAR') as Station;
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);

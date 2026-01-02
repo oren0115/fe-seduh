@@ -27,7 +27,6 @@ const getCategoryColor = (category: string) => {
 };
 
 export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   
@@ -88,8 +87,6 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
               !isAvailable && "opacity-60 cursor-not-allowed",
               showSuccess && "ring-2 ring-green-500 ring-offset-2"
             )}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
             onClick={handleAddToCart}
             role="button"
             tabIndex={isAvailable ? 0 : -1}

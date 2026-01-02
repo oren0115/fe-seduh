@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CreditCard, QrCode, Wallet, DollarSign, Loader2 } from 'lucide-react';
+import { QrCode, DollarSign, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/currency';
 import { calculateChange } from '@/utils/calculations';
 import { paymentService } from '@/services/payment.service';
 import { useToast } from '@/hooks/use-toast';
+import { QRISDialog } from './QRISDialog';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -16,31 +17,17 @@ interface PaymentDialogProps {
   activeShift: any; // Active shift
   onCreateTransaction: (
     cart: any[],
-    paymentMethod: 'CASH' | 'CARD' | 'QRIS' | 'E-WALLET',
+    paymentMethod: 'CASH' | 'QRIS',
     cashReceived?: number,
     change?: number
   ) => Promise<any>; // Function to create transaction
   onConfirm: (
-    paymentMethod: 'CASH' | 'CARD' | 'QRIS' | 'E-WALLET',
+    paymentMethod: 'CASH' | 'QRIS',
     cashReceived?: number,
     change?: number
   ) => void;
-  onMidtransPayment: () => void; // Callback for Midtrans payment success
+  onMidtransPayment: () => void; // Callback for QRIS payment success
   processing: boolean;
-}
-
-// Declare Midtrans Snap type
-declare global {
-  interface Window {
-    snap: {
-      pay: (token: string, options: {
-        onSuccess: (result: any) => void;
-        onPending: (result: any) => void;
-        onError: (result: any) => void;
-        onClose: () => void;
-      }) => void;
-    };
-  }
 }
 
 export function PaymentDialog({
@@ -54,52 +41,29 @@ export function PaymentDialog({
   onMidtransPayment,
   processing,
 }: PaymentDialogProps) {
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'QRIS' | 'E-WALLET'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'QRIS'>('CASH');
   const [cashReceived, setCashReceived] = useState('');
-  const [loadingMidtrans, setLoadingMidtrans] = useState(false);
-  const [midtransLoaded, setMidtransLoaded] = useState(false);
+  const [loadingQRIS, setLoadingQRIS] = useState(false);
+  const [qrisDialogOpen, setQrisDialogOpen] = useState(false);
+  const [qrisData, setQrisData] = useState<{
+    qrString: string;
+    orderId: string;
+    transactionId: string;
+    expiresAt?: string | null;
+  } | null>(null);
   const { toast } = useToast();
 
-  // Load Midtrans Snap script
+  // Debug: Log when QRIS dialog state changes
   useEffect(() => {
-    if (open && !midtransLoaded) {
-      const script = document.createElement('script');
-      script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
-      script.setAttribute('data-client-key', ''); // Will be set after getting client key
-      script.async = true;
-      script.onload = async () => {
-        try {
-          const clientKey = await paymentService.getClientKey();
-          script.setAttribute('data-client-key', clientKey);
-          setMidtransLoaded(true);
-        } catch (error) {
-          console.error('Failed to load Midtrans client key:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to load payment gateway. Please try again.',
-          });
-        }
-      };
-      script.onerror = () => {
-        console.error('Failed to load Midtrans Snap script');
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to load payment gateway script.',
-        });
-      };
-      document.body.appendChild(script);
-
-      return () => {
-        // Cleanup script on unmount
-        const existingScript = document.querySelector('script[src*="midtrans.com/snap"]');
-        if (existingScript) {
-          document.body.removeChild(existingScript);
-        }
-      };
+    if (qrisData) {
+      console.log('[PAYMENT DIALOG] QRIS data set:', {
+        hasQrString: !!qrisData.qrString,
+        orderId: qrisData.orderId,
+        transactionId: qrisData.transactionId,
+        dialogOpen: qrisDialogOpen,
+      });
     }
-  }, [open, midtransLoaded, toast]);
+  }, [qrisData, qrisDialogOpen]);
 
   // Calculate change for cash payment
   const cashReceivedNum = cashReceived ? parseFloat(cashReceived) : 0;
@@ -114,16 +78,7 @@ export function PaymentDialog({
     }
   };
 
-  const handleMidtransPayment = async () => {
-    if (!midtransLoaded || !window.snap) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Payment gateway is not ready. Please wait a moment and try again.',
-      });
-      return;
-    }
-
+  const handleQRISPayment = async () => {
     if (!activeShift) {
       toast({
         variant: 'destructive',
@@ -133,13 +88,13 @@ export function PaymentDialog({
       return;
     }
 
-    setLoadingMidtrans(true);
+    setLoadingQRIS(true);
 
     try {
       // Step 1: Create transaction with PENDING status
       const transaction = await onCreateTransaction(
         cart,
-        paymentMethod,
+        'QRIS',
         undefined,
         undefined
       );
@@ -148,86 +103,85 @@ export function PaymentDialog({
         throw new Error('Failed to create transaction');
       }
 
-      // Step 2: Create payment and get Snap token
-      const response = await paymentService.createMidtransPayment({
+      // Step 2: Create QRIS payment and get QR string
+      const response = await paymentService.createQRISPayment({
         transactionId: transaction._id,
         amount: total,
       });
 
-      const snapToken = response.data.snapToken;
+      const { qrString, transactionId, orderId, expiresAt } = response.data;
 
-      // Step 3: Open Midtrans Snap popup
-      window.snap.pay(snapToken, {
-        onSuccess: (result: any) => {
-          console.log('Payment success:', result);
-          toast({
-            title: 'Payment Success',
-            description: 'Payment completed successfully!',
-          });
-          // Call callback to handle success
-          onMidtransPayment();
-          setLoadingMidtrans(false);
-        },
-        onPending: (result: any) => {
-          console.log('Payment pending:', result);
-          toast({
-            title: 'Payment Pending',
-            description: 'Your payment is being processed. Please complete the payment.',
-          });
-          // Still call callback for pending payments
-          onMidtransPayment();
-          setLoadingMidtrans(false);
-        },
-        onError: (result: any) => {
-          console.error('Payment error:', result);
+      if (!qrString || qrString.trim() === '') {
+        throw new Error('QR string is required but not received from backend');
+      }
+
+      console.log('[PAYMENT] QRIS payment created successfully');
+      console.log('[PAYMENT] QR string length:', qrString.length);
+      console.log('[PAYMENT] Transaction ID:', transactionId);
+
+      // Step 3: Open QRIS custom dialog
+      console.log('[PAYMENT] Setting QRIS dialog data:', {
+        qrString: qrString.substring(0, 30) + '...',
+        orderId,
+        transactionId,
+        expiresAt,
+      });
+      setQrisData({
+        qrString,
+        orderId,
+        transactionId,
+        expiresAt,
+      });
+      setQrisDialogOpen(true);
+      console.log('[PAYMENT] QRIS dialog should be open now');
+      onOpenChange(false); // Close payment method selection
+      setLoadingQRIS(false);
+    } catch (error: any) {
+      console.error('[PAYMENT] Failed to process QRIS payment:', error);
+      
+      if (error.response?.status === 401) {
+        const { authService } = await import('@/lib/auth');
+        const expiryTime = authService.getTokenExpiryTime();
+        const isTokenExpired = expiryTime !== null && expiryTime <= 0;
+        
+        if (isTokenExpired) {
           toast({
             variant: 'destructive',
-            title: 'Payment Failed',
-            description: result.message || 'Payment failed. Please try again.',
+            title: 'Session Expired',
+            description: 'Your session has expired. Please refresh the page and login again.',
           });
-          setLoadingMidtrans(false);
-        },
-        onClose: () => {
-          console.log('Payment popup closed');
-          setLoadingMidtrans(false);
-        },
-      });
-    } catch (error: any) {
-      console.error('Failed to process payment:', error);
-      
-      // Don't show error toast if it's a 401 - let user retry
-      // 401 might be temporary (token refresh issue) and shouldn't logout
-      if (error.response?.status === 401) {
-        toast({
-          variant: 'destructive',
-          title: 'Authentication Error',
-          description: 'Your session may have expired. Please try again or refresh the page.',
-        });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: error.response?.data?.error || 'Authentication failed. Please check backend logs.',
+          });
+        }
       } else {
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: error.response?.data?.error || error.message || 'Failed to process payment. Please try again.',
+          title: 'Payment Error',
+          description: error.response?.data?.error || error.message || 'Failed to process QRIS payment. Please try again.',
         });
       }
-      setLoadingMidtrans(false);
+      setLoadingQRIS(false);
     }
   };
 
   const handleConfirm = () => {
     if (paymentMethod === 'CASH') {
       handleCashPayment();
-    } else {
-      // For Midtrans payment methods (QRIS, CARD, E-WALLET)
-      handleMidtransPayment();
+    } else if (paymentMethod === 'QRIS') {
+      // Use custom QRIS flow (Core API, not Snap)
+      handleQRISPayment();
     }
   };
 
   const isValid = paymentMethod === 'CASH'
     ? cashReceivedNum > 0 && cashReceivedNum >= total
-    : midtransLoaded && cart.length > 0 && activeShift; // For Midtrans, need script loaded, cart, and active shift
+    : cart.length > 0 && activeShift; // QRIS validation
 
-  const isProcessing = processing || loadingMidtrans;
+  const isProcessing = processing || loadingQRIS;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -264,24 +218,6 @@ export function PaymentDialog({
               >
                 <QrCode className="h-7 w-7" />
                 <span className="font-semibold">QRIS</span>
-              </Button>
-              <Button
-                variant={paymentMethod === 'CARD' ? 'default' : 'outline'}
-                className="h-20 flex-col gap-2"
-                onClick={() => setPaymentMethod('CARD')}
-                disabled={isProcessing}
-              >
-                <CreditCard className="h-7 w-7" />
-                <span className="font-semibold">Card</span>
-              </Button>
-              <Button
-                variant={paymentMethod === 'E-WALLET' ? 'default' : 'outline'}
-                className="h-20 flex-col gap-2"
-                onClick={() => setPaymentMethod('E-WALLET')}
-                disabled={isProcessing}
-              >
-                <Wallet className="h-7 w-7" />
-                <span className="font-semibold">E-Wallet</span>
               </Button>
             </div>
           </div>
@@ -385,17 +321,10 @@ export function PaymentDialog({
             </div>
           )}
 
-          {(paymentMethod === 'QRIS' || paymentMethod === 'CARD' || paymentMethod === 'E-WALLET') && (
+          {paymentMethod === 'QRIS' && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-400">
-                {!midtransLoaded ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading payment gateway...
-                  </span>
-                ) : (
-                  'You will be redirected to complete the payment.'
-                )}
+                QR Code akan ditampilkan untuk di-scan customer
               </p>
             </div>
           )}
@@ -421,12 +350,32 @@ export function PaymentDialog({
                   Processing...
                 </span>
               ) : (
-                paymentMethod === 'CASH' ? 'Confirm Payment' : 'Proceed to Payment'
+                paymentMethod === 'CASH' ? 'Confirm Payment' : 'Proceed to QRIS'
               )}
             </Button>
           </div>
         </div>
       </DialogContent>
+
+      {/* QRIS Custom Dialog */}
+      {qrisData && (
+        <QRISDialog
+          open={qrisDialogOpen}
+          onOpenChange={setQrisDialogOpen}
+          qrString={qrisData.qrString}
+          amount={total}
+          orderId={qrisData.orderId}
+          transactionId={qrisData.transactionId}
+          expiresAt={qrisData.expiresAt}
+          onPaymentSuccess={() => {
+            onMidtransPayment();
+            setQrisData(null);
+          }}
+          onPaymentFailed={() => {
+            setQrisData(null);
+          }}
+        />
+      )}
     </Dialog>
   );
 }

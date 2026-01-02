@@ -12,7 +12,7 @@ export function useTransactions() {
 
   const createTransaction = useCallback(async (
     cart: CartItem[],
-    paymentMethod: 'CASH' | 'CARD' | 'QRIS' | 'E-WALLET',
+    paymentMethod: 'CASH' | 'QRIS' | 'MIDTRANS',
     cashReceived?: number,
     change?: number,
     activeShift?: Shift | null

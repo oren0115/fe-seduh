@@ -78,7 +78,7 @@ export default function POS() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [checkOutDialogOpen, setCheckOutDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'QRIS' | 'E-WALLET'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'QRIS'>('CASH');
   const [cashReceived, setCashReceived] = useState<number>();
   const [change, setChange] = useState<number>();
 
@@ -136,7 +136,7 @@ export default function POS() {
 
   // Handle Cash payment confirmation
   const handlePaymentConfirm = async (
-    method: 'CASH' | 'CARD' | 'QRIS' | 'E-WALLET',
+    method: 'CASH' | 'QRIS',
     cash?: number,
     changeAmount?: number
   ) => {
