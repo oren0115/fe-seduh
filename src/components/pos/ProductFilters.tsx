@@ -59,7 +59,7 @@ export function ProductFilters({
           placeholder="Search products... (Ctrl+F)"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 pr-10 h-10 md:h-11 text-sm md:text-base"
+          className="pl-10 pr-10 h-10 md:h-11 text-sm md:text-base focus-visible:ring-0 focus-visible:ring-offset-0"
         />
         {searchQuery && (
           <Button

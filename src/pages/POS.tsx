@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
@@ -19,7 +20,8 @@ import { calculateTotal } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/currency';
 
 export default function POS() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isOnline = useOnlineStatus();
   
   // Products
@@ -194,12 +196,28 @@ export default function POS() {
     
     // Show receipt (transaction might still be PENDING, webhook will update it)
     setReceiptDialogOpen(true);
-    await loadActiveShift();
+    
+    // Reload active shift (non-blocking, don't fail if error)
+    try {
+      await loadActiveShift();
+    } catch (error) {
+      // Don't throw - shift reload failure shouldn't block payment flow
+      console.warn('Failed to reload active shift after payment:', error);
+    }
   };
 
   const handleReceiptClose = () => {
     setReceiptDialogOpen(false);
     clearCompletedTransaction();
+  };
+
+  const handleLogout = async () => {
+    // Clear cart and promotions before logout
+    clearCart();
+    clearPromotions();
+    await logout();
+    // Redirect to login page
+    navigate('/login');
   };
 
   return (
@@ -221,6 +239,7 @@ export default function POS() {
         onCheckIn={checkIn}
         onCheckOut={handleCheckOut}
         onHistoryClick={() => setHistoryDialogOpen(true)}
+        onLogout={handleLogout}
         notifications={notifications}
         onMarkNotificationAsRead={markAsRead}
         onMarkAllNotificationsAsRead={markAllAsRead}

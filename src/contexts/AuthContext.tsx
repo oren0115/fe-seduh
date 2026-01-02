@@ -19,23 +19,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Check if user is already logged in
     const checkAuth = async () => {
       const storedUser = authService.getStoredUser();
-      if (storedUser && authService.isAuthenticated()) {
-        // Verify token is still valid
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        // Set user from localStorage immediately to prevent logout on reload
+        setUser(storedUser);
+        setLoading(false);
+        
+        // Verify token in background (non-blocking)
         try {
           const currentUser = await authService.getCurrentUser();
           if (currentUser) {
+            // Update user if verification succeeds
             setUser(currentUser);
             localStorage.setItem('user', JSON.stringify(currentUser));
-          } else {
-            // Token invalid, logout
+          }
+          // If getCurrentUser returns null but no error, token might be invalid
+          // But we don't logout here to prevent issues with network errors
+        } catch (error: any) {
+          // Only logout if it's a 401 Unauthorized error (token is actually invalid)
+          // For other errors (network, server down, etc), keep user logged in
+          if (error?.response?.status === 401) {
             authService.logout();
             setUser(null);
           }
-        } catch {
-          authService.logout();
-          setUser(null);
-        } finally {
-          setLoading(false);
+          // For other errors, keep the user logged in with stored data
         }
       } else {
         setLoading(false);

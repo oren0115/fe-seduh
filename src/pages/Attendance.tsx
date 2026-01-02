@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { attendanceService, Attendance as AttendanceType, AttendanceSummary } from '@/lib/api-services';
+import { attendanceService, Attendance as AttendanceType, AttendanceSummary, userService, User } from '@/lib/api-services';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { formatDate, formatDateTime } from '@/lib/utils';
 
 interface AttendanceParams {
@@ -16,6 +23,7 @@ function AttendancePage() {
   const [attendances, setAttendances] = useState<AttendanceType[]>([]);
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   // Filters for attendance list
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
@@ -65,10 +73,18 @@ function AttendancePage() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const response = await userService.getAll();
+      setUsers(response.data.filter((u) => u.isActive)); // Only show active users
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    }
+  };
+
   useEffect(() => {
     loadAttendances();
-    // Note: Backend doesn't have GET /users endpoint
-    // You might want to add this to backend or get users from another source
+    loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFilter, userIdFilter]);
 
@@ -193,16 +209,25 @@ function AttendancePage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="summary-user">User ID *</Label>
-                    <Input
-                      id="summary-user"
+                    <Label htmlFor="summary-user">Nama *</Label>
+                    <Select
                       value={summaryUserId}
-                      onChange={(e) => setSummaryUserId(e.target.value)}
-                      placeholder="Enter user ID (e.g., 507f1f77bcf86cd799439011)"
+                      onValueChange={setSummaryUserId}
                       required
-                    />
+                    >
+                      <SelectTrigger id="summary-user">
+                        <SelectValue placeholder="Pilih nama user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user._id} value={user._id}>
+                            {user.name} ({user.role})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground">
-                      Enter the user ID. The summary will display the user's name once loaded.
+                      Pilih nama user untuk melihat summary attendance.
                     </p>
                   </div>
                   <div className="space-y-2">

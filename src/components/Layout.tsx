@@ -13,7 +13,6 @@ import {
   LogOut,
   Menu,
   ShoppingCart,
-  Search,
   Calendar,
   FolderTree,
   Settings,
@@ -31,7 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Input } from './ui/input';
 import { useState, useEffect } from 'react';
 import { NotificationDropdown, useNotifications } from './NotificationDropdown';
 
@@ -415,15 +413,6 @@ export default function Layout({ children }: LayoutProps) {
                  </p>
                 </div>
                 <div className="flex items-center gap-3 ml-6">
-                  {/* Search Bar */}
-                  <div className="relative hidden md:block">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search products, orders..."
-                      className="pl-9 w-80 h-10 text-sm"
-                    />
-                  </div>
-                  
                   {/* Notifications */}
                   <NotificationDropdown
                     notifications={notifications}

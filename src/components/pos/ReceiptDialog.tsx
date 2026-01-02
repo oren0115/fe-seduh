@@ -23,9 +23,9 @@ export function ReceiptDialog({
   onOpenChange,
   transaction,
   userName,
-  subtotal,
-  discountTotal,
-  total,
+  subtotal: propSubtotal,
+  discountTotal: propDiscountTotal,
+  total: propTotal,
   paymentMethod,
   cashReceived,
   change,
@@ -39,6 +39,20 @@ export function ReceiptDialog({
   };
 
   if (!transaction) return null;
+
+  // Calculate subtotal from transaction items (source of truth)
+  const calculatedSubtotal = transaction.items.reduce((sum, item) => sum + item.subtotal, 0);
+  
+  // Use transaction total as source of truth, fallback to calculated if needed
+  const displayTotal = transaction.total || calculatedSubtotal;
+  
+  // Calculate discount (if any) - difference between subtotal and total
+  const calculatedDiscount = calculatedSubtotal - displayTotal;
+  
+  // Use calculated values if props are 0 (cart already cleared)
+  const subtotal = propSubtotal > 0 ? propSubtotal : calculatedSubtotal;
+  const discountTotal = propDiscountTotal > 0 ? propDiscountTotal : (calculatedDiscount > 0 ? calculatedDiscount : 0);
+  const total = propTotal > 0 ? propTotal : displayTotal;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

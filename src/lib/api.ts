@@ -29,9 +29,18 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      // Only clear if we're not already on login page to prevent redirect loops
+      // Don't logout if we're in payment flow (Midtrans popup might cause token issues)
+      const isPaymentFlow = 
+        error.config?.url?.includes('/payments/midtrans') ||
+        error.config?.url?.includes('/payments/');
+      
+      if (!window.location.pathname.includes('/login') && !isPaymentFlow) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

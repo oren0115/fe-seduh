@@ -2,7 +2,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Timer, Wifi, WifiOff, Clock, LogIn, LogOut, AlertCircle, History } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Timer, Wifi, WifiOff, Clock, LogIn, LogOut, AlertCircle, History, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Shift } from '@/types/shift.types';
 import { NotificationDropdown, type Notification } from '@/components/NotificationDropdown';
@@ -25,6 +32,7 @@ interface ShiftStatusBarProps {
   onCheckIn: () => void;
   onCheckOut: () => void;
   onHistoryClick?: () => void;
+  onLogout?: () => void;
   notifications?: Notification[];
   onMarkNotificationAsRead?: (id: string) => void;
   onMarkAllNotificationsAsRead?: () => void;
@@ -42,6 +50,7 @@ export function ShiftStatusBar({
   onCheckIn,
   onCheckOut,
   onHistoryClick,
+  onLogout,
   notifications = [],
   onMarkNotificationAsRead,
   onMarkAllNotificationsAsRead,
@@ -180,6 +189,35 @@ export function ShiftStatusBar({
             </TooltipProvider>
             
             <ThemeToggle />
+            
+            {/* Logout Menu */}
+            {onLogout && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 md:h-11 md:w-11"
+                    title="Menu"
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onHistoryClick && (
+                    <DropdownMenuItem onClick={onHistoryClick}>
+                      <History className="h-4 w-4 mr-2" />
+                      <span>Transaction History</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>

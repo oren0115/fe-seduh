@@ -101,14 +101,15 @@ export function PaymentDialog({
     }
   }, [open, midtransLoaded, toast]);
 
-  const change = paymentMethod === 'CASH' && cashReceived
-    ? calculateChange(parseFloat(cashReceived), total)
+  // Calculate change for cash payment
+  const cashReceivedNum = cashReceived ? parseFloat(cashReceived) : 0;
+  const change = paymentMethod === 'CASH' && cashReceivedNum > 0
+    ? calculateChange(cashReceivedNum, total)
     : 0;
 
   const handleCashPayment = () => {
-    if (paymentMethod === 'CASH') {
-      const cash = parseFloat(cashReceived);
-      onConfirm(paymentMethod, cash, change);
+    if (paymentMethod === 'CASH' && cashReceivedNum >= total) {
+      onConfirm(paymentMethod, cashReceivedNum, change);
       setCashReceived('');
     }
   };
@@ -193,11 +194,22 @@ export function PaymentDialog({
       });
     } catch (error: any) {
       console.error('Failed to process payment:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.response?.data?.error || error.message || 'Failed to process payment. Please try again.',
-      });
+      
+      // Don't show error toast if it's a 401 - let user retry
+      // 401 might be temporary (token refresh issue) and shouldn't logout
+      if (error.response?.status === 401) {
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Error',
+          description: 'Your session may have expired. Please try again or refresh the page.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.response?.data?.error || error.message || 'Failed to process payment. Please try again.',
+        });
+      }
       setLoadingMidtrans(false);
     }
   };
@@ -212,7 +224,7 @@ export function PaymentDialog({
   };
 
   const isValid = paymentMethod === 'CASH'
-    ? cashReceived && parseFloat(cashReceived) >= total
+    ? cashReceivedNum > 0 && cashReceivedNum >= total
     : midtransLoaded && cart.length > 0 && activeShift; // For Midtrans, need script loaded, cart, and active shift
 
   const isProcessing = processing || loadingMidtrans;
@@ -282,13 +294,76 @@ export function PaymentDialog({
                   type="number"
                   placeholder="Enter amount"
                   value={cashReceived}
-                  onChange={(e) => setCashReceived(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty, numbers, and decimal
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setCashReceived(value);
+                    }
+                  }}
                   className="text-lg font-semibold"
                   autoFocus
                   disabled={isProcessing}
+                  min={0}
+                  step="1000"
                 />
+                {/* Quick amount buttons */}
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCashReceived(total.toString())}
+                    disabled={isProcessing}
+                    className="text-xs"
+                  >
+                    Exact
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCashReceived((total + 5000).toString())}
+                    disabled={isProcessing}
+                    className="text-xs"
+                  >
+                    +5K
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCashReceived((total + 10000).toString())}
+                    disabled={isProcessing}
+                    className="text-xs"
+                  >
+                    +10K
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCashReceived((total + 20000).toString())}
+                    disabled={isProcessing}
+                    className="text-xs"
+                  >
+                    +20K
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCashReceived((total + 50000).toString())}
+                    disabled={isProcessing}
+                    className="text-xs"
+                  >
+                    +50K
+                  </Button>
+                </div>
               </div>
-              {cashReceived && parseFloat(cashReceived) >= total && (
+              
+              {/* Change display */}
+              {cashReceivedNum > 0 && cashReceivedNum >= total && (
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-green-700 dark:text-green-400">Change:</span>
@@ -298,10 +373,12 @@ export function PaymentDialog({
                   </div>
                 </div>
               )}
-              {cashReceived && parseFloat(cashReceived) < total && (
+              
+              {/* Insufficient amount warning */}
+              {cashReceivedNum > 0 && cashReceivedNum < total && (
                 <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                   <p className="text-sm text-red-700 dark:text-red-400">
-                    Insufficient amount. Need {formatCurrency(total - parseFloat(cashReceived))} more.
+                    Insufficient amount. Need {formatCurrency(total - cashReceivedNum)} more.
                   </p>
                 </div>
               )}
