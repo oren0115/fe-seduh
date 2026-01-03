@@ -11,7 +11,7 @@ export interface Transaction {
   transactionNumber: string;
   items: TransactionItem[];
   total: number;
-  paymentMethod: 'CASH' | 'QRIS' | 'MIDTRANS'; // MIDTRANS for backend, CASH/QRIS for frontend
+  paymentMethod: 'CASH';
   cashReceived?: number;
   change?: number;
   status: 'LOCAL' | 'SYNCED' | 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'CANCELED';
@@ -23,7 +23,7 @@ export interface Transaction {
 
 export interface CreateTransactionData {
   items: TransactionItem[];
-  paymentMethod: 'CASH' | 'QRIS' | 'MIDTRANS'; // MIDTRANS for backend, CASH/QRIS for frontend
+  paymentMethod: 'CASH';
   cashReceived?: number;
   change?: number;
 }

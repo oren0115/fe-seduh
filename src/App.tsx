@@ -108,7 +108,7 @@ function AppRoutes() {
         <Route
           path="/shifts"
           element={
-            <ProtectedRoute requiredRole="OWNER">
+            <ProtectedRoute>
               <Layout>
                 <Shifts />
               </Layout>

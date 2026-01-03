@@ -81,7 +81,8 @@ export function ProductCard({ product, cart, onAddToCart }: ProductCardProps) {
           <Card
             className={cn(
               "relative cursor-pointer transition-all duration-200 group",
-              "hover:shadow-lg hover:-translate-y-1 hover:border-primary/50",
+              "m-0.5 md:m-1", // Add margin to prevent border clipping on hover
+              "hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/50",
               "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2",
               "active:scale-[0.98]",
               !isAvailable && "opacity-60 cursor-not-allowed",

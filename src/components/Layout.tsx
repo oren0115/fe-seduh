@@ -100,6 +100,12 @@ export default function Layout({ children }: LayoutProps) {
           { name: 'POS', href: '/pos', icon: ShoppingCart, badge: null },
         ]
       },
+      { 
+        group: 'Operations', 
+        items: [
+          { name: 'Shifts', href: '/shifts', icon: Calendar, badge: null },
+        ]
+      },
     ];
     
     accordionGroups.forEach((groupName) => {
@@ -131,6 +137,12 @@ export default function Layout({ children }: LayoutProps) {
       group: 'Main', 
       items: [
         { name: 'POS', href: '/pos', icon: ShoppingCart, badge: null },
+      ]
+    },
+    { 
+      group: 'Operations', 
+      items: [
+        { name: 'Shifts', href: '/shifts', icon: Calendar, badge: null },
       ]
     },
   ];

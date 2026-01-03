@@ -3,7 +3,6 @@ import { transactionService } from '@/services/transaction.service';
 import type { Transaction, CreateTransactionData, CartItem } from '@/types/transaction.types';
 import type { Shift } from '@/types/shift.types';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/utils/currency';
 
 export function useTransactions() {
   const [processing, setProcessing] = useState(false);
@@ -12,7 +11,7 @@ export function useTransactions() {
 
   const createTransaction = useCallback(async (
     cart: CartItem[],
-    paymentMethod: 'CASH' | 'QRIS' | 'MIDTRANS',
+    paymentMethod: 'CASH',
     cashReceived?: number,
     change?: number,
     activeShift?: Shift | null
@@ -36,16 +35,8 @@ export function useTransactions() {
       return null;
     }
 
-    const total = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    if (paymentMethod === 'CASH' && (!cashReceived || cashReceived < total)) {
-      toast({
-        variant: 'destructive',
-        title: 'Insufficient Payment',
-        description: `Cash received must be at least ${formatCurrency(total)}`,
-      });
-      return null;
-    }
-
+    // Note: Cash payment validation (cashReceived >= total) is already done in PaymentDialog
+    // Backend will also validate the transaction data
     try {
       setProcessing(true);
       const transactionData: CreateTransactionData = {

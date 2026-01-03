@@ -12,4 +12,5 @@ export * from './shift-template.service';
 export * from './holiday.service';
 export * from './leave-request.service';
 export * from './payment.service';
+export * from './order.service';
 

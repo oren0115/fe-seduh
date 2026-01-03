@@ -1,13 +1,15 @@
   
-import { useEffect, useState, useCallback } from 'react';
-import { productService, reportService, transactionService, Transaction } from '@/lib/api-services';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { productService, reportService, transactionService, leaveRequestService, Transaction, LeaveRequest } from '@/lib/api-services';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { AlertBanner } from '@/components/dashboard/AlertBanner';
 import { TransactionChart } from '@/components/dashboard/TransactionChart';
 import { TransactionHistory } from '@/components/dashboard/TransactionHistory';
 import { LatestTransactions } from '@/components/dashboard/LatestTransactions';
+import { useNotifications } from '@/components/NotificationDropdown';
+import { useAuth } from '@/contexts/AuthContext';
 import { ShoppingBag, Clock, CheckCircle2, Package } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -26,26 +28,61 @@ export default function Dashboard() {
   }>>([]);
   const [latestTransactions, setLatestTransactions] = useState<Transaction[]>([]);
   const [lowStockAlert, setLowStockAlert] = useState<string | null>(null);
+  const [trends, setTrends] = useState({
+    totalOrders: { value: '0% than yesterday', isPositive: true },
+    pendingOrders: { value: '0% than yesterday', isPositive: true },
+    completedOrders: { value: '0% than yesterday', isPositive: true },
+  });
+  const [newProductsCount, setNewProductsCount] = useState(0);
+  const { addNotification } = useNotifications();
+  const { user } = useAuth();
+  const notifiedLowStockRef = useRef<Set<string>>(new Set());
+  const notifiedLeaveRequestsRef = useRef<Set<string>>(new Set());
 
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const today = format(new Date(), 'yyyy-MM-dd');
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
       
-      // Load daily report for today's stats
-      const [dailyReport, productsResponse, transactionsResponse] = await Promise.all([
+      // Load daily report for today's stats and yesterday's data
+      // Only load leave requests if user is owner/admin
+      const isAdmin = user?.role === 'OWNER';
+      const [dailyReport, productsResponse, transactionsResponse, yesterdayTransactionsResponse, pendingLeavesResponse] = await Promise.all([
         reportService.getDaily(today).catch(() => null),
         productService.getAll(),
         transactionService.getAll({ date: today }),
+        transactionService.getAll({ date: yesterday }).catch(() => ({ data: [] })),
+        isAdmin ? leaveRequestService.getAll({ status: 'PENDING' }).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
       ]);
 
       const products = productsResponse.data;
       const transactions = transactionsResponse.data || [];
+      const yesterdayTransactions = yesterdayTransactionsResponse.data || [];
+      const pendingLeaves = pendingLeavesResponse.data || [];
       
-      // Check for low stock
-      const lowStockProduct = products.find(p => p.stock !== null && p.stock < 5);
-      if (lowStockProduct) {
-        setLowStockAlert(`Your product stock "${lowStockProduct.name}" is running low already below 5 Pcs. Please request a new shipment.`);
+      // Check for low stock and add notifications
+      const lowStockProducts = products.filter(p => p.stock !== null && p.stock < 5);
+      if (lowStockProducts.length > 0) {
+        const firstLowStock = lowStockProducts[0];
+        const alertMessage = lowStockProducts.length === 1
+          ? `Your product stock "${firstLowStock.name}" is running low already below 5 Pcs. Please request a new shipment.`
+          : `${lowStockProducts.length} products are running low (below 5 Pcs). Please check and request new shipments.`;
+        setLowStockAlert(alertMessage);
+        
+        // Add notification for each low stock product (only once per product)
+        lowStockProducts.forEach(product => {
+          if (!notifiedLowStockRef.current.has(product._id)) {
+            addNotification({
+              type: 'warning',
+              title: 'Low Stock Alert',
+              message: `Product "${product.name}" is running low (${product.stock} Pcs remaining). Please request a new shipment.`,
+            });
+            notifiedLowStockRef.current.add(product._id);
+          }
+        });
+      } else {
+        setLowStockAlert(null);
       }
 
       // Calculate stats
@@ -53,12 +90,67 @@ export default function Dashboard() {
       const pendingOrders = transactions.filter(t => t.status === 'PENDING').length;
       const completedOrders = transactions.filter(t => t.status === 'SYNCED').length;
 
+      // Calculate yesterday's stats
+      const yesterdayTotalOrders = yesterdayTransactions.length;
+      const yesterdayPendingOrders = yesterdayTransactions.filter(t => t.status === 'PENDING').length;
+      const yesterdayCompletedOrders = yesterdayTransactions.filter(t => t.status === 'SYNCED').length;
+
+      // Calculate percentage changes
+      const calculatePercentageChange = (today: number, yesterday: number): { value: string; isPositive: boolean } => {
+        if (yesterday === 0) {
+          if (today === 0) {
+            return { value: 'No change', isPositive: true };
+          }
+          return { value: 'New', isPositive: true };
+        }
+        const change = ((today - yesterday) / yesterday) * 100;
+        const absChange = Math.abs(change);
+        if (absChange < 0.01) {
+          return { value: 'No change', isPositive: true };
+        }
+        const formattedChange = `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+        return {
+          value: `${formattedChange} than yesterday`,
+          isPositive: change >= 0,
+        };
+      };
+
+      setTrends({
+        totalOrders: calculatePercentageChange(totalOrders, yesterdayTotalOrders),
+        pendingOrders: calculatePercentageChange(pendingOrders, yesterdayPendingOrders),
+        completedOrders: calculatePercentageChange(completedOrders, yesterdayCompletedOrders),
+      });
+
       setStats({
         totalOrders,
         pendingOrders,
         completedOrders,
         totalProducts: products.length,
       });
+
+      // Calculate new products (products created in the last 7 days)
+      const sevenDaysAgo = subDays(new Date(), 7);
+      const newProducts = products.filter(p => {
+        const createdAt = new Date(p.createdAt);
+        return createdAt >= sevenDaysAgo;
+      });
+      setNewProductsCount(newProducts.length);
+
+      // Add notifications for pending leave requests (admin only)
+      if (isAdmin && pendingLeaves.length > 0) {
+        pendingLeaves.forEach((leave: LeaveRequest) => {
+          if (!notifiedLeaveRequestsRef.current.has(leave._id)) {
+            const userName = leave.user?.name || 'Unknown';
+            const leaveType = leave.type === 'SICK' ? 'Sakit' : leave.type === 'PERMISSION' ? 'Izin' : 'Cuti Tahunan';
+            addNotification({
+              type: 'info',
+              title: 'Pengajuan Cuti Baru',
+              message: `${userName} mengajukan ${leaveType} dari ${format(new Date(leave.startDate), 'dd MMM yyyy')} hingga ${format(new Date(leave.endDate), 'dd MMM yyyy')}.`,
+            });
+            notifiedLeaveRequestsRef.current.add(leave._id);
+          }
+        });
+      }
 
       // Generate chart data from hourly sales
       if (dailyReport?.data?.hourlySales) {
@@ -101,10 +193,15 @@ export default function Dashboard() {
       setLatestTransactions(transactions.slice(0, 10));
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
+      addNotification({
+        type: 'error',
+        title: 'Failed to Load Dashboard',
+        message: 'Unable to load dashboard data. Please refresh the page.',
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addNotification]);
 
   useEffect(() => {
     loadDashboardData();
@@ -133,37 +230,28 @@ export default function Dashboard() {
           value={stats.totalOrders}
           icon={ShoppingBag}
           iconColor="text-primary"
-          trend={{
-            value: "0.1% than yesterday",
-            isPositive: true,
-          }}
+          trend={trends.totalOrders}
         />
         <KPICard
           title="Total Pending Order"
           value={stats.pendingOrders}
           icon={Clock}
           iconColor="text-orange-500"
-          trend={{
-            value: "0.1% than yesterday",
-            isPositive: false,
-          }}
+          trend={trends.pendingOrders}
         />
         <KPICard
           title="Total Completed Order"
           value={stats.completedOrders}
           icon={CheckCircle2}
           iconColor="text-purple-500"
-          trend={{
-            value: "0.1% than yesterday",
-            isPositive: true,
-          }}
+          trend={trends.completedOrders}
         />
         <KPICard
           title="Total Product"
           value={stats.totalProducts}
           icon={Package}
           iconColor="text-pink-500"
-          description="2 new product"
+          description={newProductsCount > 0 ? `${newProductsCount} new product${newProductsCount > 1 ? 's' : ''}` : undefined}
         />
       </div>
 

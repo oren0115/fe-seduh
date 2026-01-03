@@ -4,7 +4,7 @@ import type { CartItem } from '@/types/transaction.types';
 import { useToast } from '@/hooks/use-toast';
 import { calculateSubtotal } from '@/utils/calculations';
 
-export function useCart() {
+export function useCart(products: Product[] = []) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
 
@@ -22,6 +22,19 @@ export function useCart() {
     setCart(prev => {
       const existing = prev.find(item => item.productId === product._id);
       if (existing) {
+        // Check stock when increasing quantity
+        const currentProduct = products.find(p => p._id === product._id);
+        if (currentProduct && currentProduct.stock !== null) {
+          const newQty = existing.qty + 1;
+          if (newQty > currentProduct.stock) {
+            toast({
+              variant: 'destructive',
+              title: 'Insufficient Stock',
+              description: `Only ${currentProduct.stock} units available in stock`,
+            });
+            return prev;
+          }
+        }
         return prev.map(item =>
           item.productId === product._id
             ? { ...item, qty: item.qty + 1, subtotal: (item.qty + 1) * item.price }
@@ -37,7 +50,7 @@ export function useCart() {
         subtotal: product.price,
       }];
     });
-  }, [toast]);
+  }, [toast, products]);
 
   const updateCartItemQty = useCallback((productId: string, delta: number) => {
     setCart(prev => {
@@ -49,13 +62,28 @@ export function useCart() {
         return prev.filter(i => i.productId !== productId);
       }
       
+      // Check stock when increasing quantity (delta > 0)
+      if (delta > 0) {
+        const product = products.find(p => p._id === productId);
+        if (product && product.stock !== null) {
+          if (newQty > product.stock) {
+            toast({
+              variant: 'destructive',
+              title: 'Insufficient Stock',
+              description: `Only ${product.stock} units available in stock`,
+            });
+            return prev;
+          }
+        }
+      }
+      
       return prev.map(i =>
         i.productId === productId
           ? { ...i, qty: newQty, subtotal: newQty * i.price }
           : i
       );
     });
-  }, []);
+  }, [toast, products]);
 
   const removeFromCart = useCallback((productId: string) => {
     setCart(prev => prev.filter(item => item.productId !== productId));

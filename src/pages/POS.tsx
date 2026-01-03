@@ -43,7 +43,7 @@ export default function POS() {
     updateCartItemQty,
     removeFromCart,
     clearCart,
-  } = useCart();
+  } = useCart(filteredProducts);
 
   // Promotions
   const {
@@ -78,7 +78,7 @@ export default function POS() {
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [checkOutDialogOpen, setCheckOutDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'QRIS'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH'>('CASH');
   const [cashReceived, setCashReceived] = useState<number>();
   const [change, setChange] = useState<number>();
 
@@ -136,73 +136,37 @@ export default function POS() {
 
   // Handle Cash payment confirmation
   const handlePaymentConfirm = async (
-    method: 'CASH' | 'QRIS',
+    method: 'CASH',
     cash?: number,
     changeAmount?: number
   ) => {
-    // For Cash payment, create transaction directly
-    if (method === 'CASH') {
-      setPaymentMethod(method);
-      setCashReceived(cash);
-      setChange(changeAmount);
+    setPaymentMethod(method);
+    setCashReceived(cash);
+    setChange(changeAmount);
 
-      const transaction = await createTransaction(
-        cart,
-        method,
-        cash,
-        changeAmount,
-        activeShift
-      );
+    const transaction = await createTransaction(
+      cart,
+      method,
+      cash,
+      changeAmount,
+      activeShift
+    );
 
-      if (transaction) {
-        // Add notification for successful payment
-        addNotification({
-          type: 'success',
-          title: 'Payment Successful',
-          message: `Transaction ${transaction.transactionNumber} completed. Total: ${formatCurrency(transaction.total)}`,
-        });
+    if (transaction) {
+      // Add notification for successful payment
+      addNotification({
+        type: 'success',
+        title: 'Payment Successful',
+        message: `Transaction ${transaction.transactionNumber} completed. Total: ${formatCurrency(transaction.total)}`,
+      });
 
-        clearCart();
-        clearPromotions();
-        setPaymentDialogOpen(false);
-        setCashReceived(undefined);
-        setChange(undefined);
-        setReceiptDialogOpen(true);
-        await loadActiveShift();
-      }
-    }
-    // For Midtrans payments, transaction will be created in handleMidtransPayment
-  };
-
-  // Handle Midtrans payment flow (called after Snap popup success)
-  const handleMidtransPayment = async () => {
-    // Transaction already created with PENDING status
-    // Payment already created and Snap popup opened
-    // Webhook will update transaction status when payment completes
-    
-    // Close payment dialog
-    setPaymentDialogOpen(false);
-    
-    // Add notification for payment initiated
-    addNotification({
-      type: 'info',
-      title: 'Payment Initiated',
-      message: 'Payment processing started. Please complete the payment in the popup window.',
-    });
-    
-    // Clear cart and promotions
-    clearCart();
-    clearPromotions();
-    
-    // Show receipt (transaction might still be PENDING, webhook will update it)
-    setReceiptDialogOpen(true);
-    
-    // Reload active shift (non-blocking, don't fail if error)
-    try {
+      clearCart();
+      clearPromotions();
+      setPaymentDialogOpen(false);
+      setCashReceived(undefined);
+      setChange(undefined);
+      setReceiptDialogOpen(true);
       await loadActiveShift();
-    } catch (error) {
-      // Don't throw - shift reload failure shouldn't block payment flow
-      console.warn('Failed to reload active shift after payment:', error);
     }
   };
 
@@ -239,6 +203,7 @@ export default function POS() {
         onCheckIn={checkIn}
         onCheckOut={handleCheckOut}
         onHistoryClick={() => setHistoryDialogOpen(true)}
+        onShiftsClick={() => navigate('/shifts')}
         onLogout={handleLogout}
         notifications={notifications}
         onMarkNotificationAsRead={markAsRead}
@@ -288,13 +253,7 @@ export default function POS() {
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
         total={total}
-        cart={cart}
-        activeShift={activeShift}
-        onCreateTransaction={async (cartItems, method, cash, change) => {
-          return await createTransaction(cartItems, method, cash, change, activeShift);
-        }}
         onConfirm={handlePaymentConfirm}
-        onMidtransPayment={handleMidtransPayment}
         processing={processing}
       />
 
