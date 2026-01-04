@@ -1,5 +1,5 @@
 import api from '../lib/api';
-import type { Order, CreateOrderData, UpdateOrderStatusData, Station, OrderStatus } from '../types/order.types';
+import type { Order, CreateOrderData, UpdateOrderStatusData, Station, OrderStatus, BaristaOrder } from '../types/order.types';
 
 export const orderService = {
   /**
@@ -20,9 +20,26 @@ export const orderService = {
   },
 
   /**
-   * Update order status
+   * Get orders for Barista (BAR station only, no price information)
+   */
+  getForBarista: (status?: OrderStatus) => {
+    const params: any = {};
+    if (status) {
+      params.status = status;
+    }
+    return api.get<BaristaOrder[]>('/orders', { params });
+  },
+
+  /**
+   * Update order status (Barista endpoint)
    */
   updateStatus: (orderId: string, data: UpdateOrderStatusData) =>
+    api.patch<Order>(`/orders/${orderId}/status`, data),
+
+  /**
+   * Update order status (KDS endpoint - legacy)
+   */
+  updateStatusKDS: (orderId: string, data: UpdateOrderStatusData) =>
     api.patch<Order>(`/kds/orders/${orderId}/status`, data),
 
   /**

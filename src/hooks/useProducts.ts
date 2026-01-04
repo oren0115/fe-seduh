@@ -90,6 +90,41 @@ export function useProducts() {
     setFilteredProducts(filtered);
   }, [searchQuery, selectedCategory, products]);
 
+  // Update product stock locally (optimistic update)
+  const updateProductStock = useCallback((productId: string, quantity: number) => {
+    setProducts(prevProducts => 
+      prevProducts.map(product => {
+        if (product._id === productId && product.stock !== null) {
+          const newStock = Math.max(0, product.stock - quantity);
+          return {
+            ...product,
+            stock: newStock,
+            isAvailable: newStock > 0,
+          };
+        }
+        return product;
+      })
+    );
+  }, []);
+
+  // Update multiple products stock at once
+  const updateMultipleProductsStock = useCallback((updates: Array<{ productId: string; quantity: number }>) => {
+    setProducts(prevProducts => 
+      prevProducts.map(product => {
+        const update = updates.find(u => u.productId === product._id);
+        if (update && product.stock !== null) {
+          const newStock = Math.max(0, product.stock - update.quantity);
+          return {
+            ...product,
+            stock: newStock,
+            isAvailable: newStock > 0,
+          };
+        }
+        return product;
+      })
+    );
+  }, []);
+
   return {
     products,
     filteredProducts,
@@ -100,6 +135,8 @@ export function useProducts() {
     setSearchQuery,
     setSelectedCategory,
     reloadProducts: loadProducts,
+    updateProductStock,
+    updateMultipleProductsStock,
   };
 }
 

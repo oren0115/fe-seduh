@@ -33,6 +33,8 @@ export default function POS() {
     selectedCategory,
     setSearchQuery,
     setSelectedCategory,
+    updateMultipleProductsStock,
+    reloadProducts,
   } = useProducts();
 
   // Cart
@@ -153,6 +155,16 @@ export default function POS() {
     );
 
     if (transaction) {
+      // Update product stock locally (optimistic update)
+      const stockUpdates = cart.map(item => ({
+        productId: item.productId,
+        quantity: item.qty,
+      }));
+      updateMultipleProductsStock(stockUpdates);
+
+      // Reload products to ensure data sync with backend
+      reloadProducts();
+
       // Add notification for successful payment
       addNotification({
         type: 'success',

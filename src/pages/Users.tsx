@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Users as UsersIcon, Shield, User as UserIcon, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Users as UsersIcon, Shield, User as UserIcon, Edit, Trash2, AlertTriangle, Coffee } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -263,6 +263,8 @@ export default function Users() {
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                           {user.role === 'OWNER' ? (
                             <Shield className="h-5 w-5 text-primary" />
+                          ) : user.role === 'BARISTA' ? (
+                            <Coffee className="h-5 w-5 text-primary" />
                           ) : (
                             <UserIcon className="h-5 w-5 text-primary" />
                           )}
@@ -278,6 +280,8 @@ export default function Users() {
                             "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                             user.role === 'OWNER'
                               ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                              : user.role === 'BARISTA'
+                              ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
                               : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                           )}>
                             {user.role}
@@ -366,7 +370,7 @@ export default function Users() {
                 <Label htmlFor="role">Role *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: 'OWNER' | 'KASIR') =>
+                  onValueChange={(value: 'OWNER' | 'KASIR' | 'BARISTA') =>
                     setFormData({ ...formData, role: value })
                   }
                 >
@@ -441,7 +445,7 @@ export default function Users() {
                 <Label htmlFor="edit-role">Role *</Label>
                 <Select
                   value={editFormData.role}
-                  onValueChange={(value: 'OWNER' | 'KASIR') =>
+                  onValueChange={(value: 'OWNER' | 'KASIR' | 'BARISTA') =>
                     setEditFormData({ ...editFormData, role: value })
                   }
                 >
@@ -494,6 +498,8 @@ export default function Users() {
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     {deletingUser.role === 'OWNER' ? (
                       <Shield className="h-5 w-5 text-primary" />
+                    ) : deletingUser.role === 'BARISTA' ? (
+                      <Coffee className="h-5 w-5 text-primary" />
                     ) : (
                       <UserIcon className="h-5 w-5 text-primary" />
                     )}
@@ -505,6 +511,8 @@ export default function Users() {
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2",
                       deletingUser.role === 'OWNER'
                         ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                        : deletingUser.role === 'BARISTA'
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
                         : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                     )}>
                       {deletingUser.role}

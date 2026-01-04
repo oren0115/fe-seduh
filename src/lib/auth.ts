@@ -4,7 +4,7 @@ export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'OWNER' | 'KASIR';
+  role: 'OWNER' | 'KASIR' | 'BARISTA';
   isActive: boolean;
 }
 

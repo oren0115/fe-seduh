@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'OWNER' | 'KASIR';
+  requiredRole?: 'OWNER' | 'KASIR' | 'BARISTA';
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
@@ -28,6 +28,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // Redirect to appropriate page based on user role
     if (user?.role === 'KASIR') {
       return <Navigate to="/pos" replace />;
+    }
+    if (user?.role === 'BARISTA') {
+      return <Navigate to="/barista" replace />;
     }
     return <Navigate to="/" replace />;
   }

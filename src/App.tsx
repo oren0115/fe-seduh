@@ -14,6 +14,7 @@ import Shifts from './pages/Shifts'
 import History from './pages/History'
 import POS from './pages/POS'
 import KDS from './pages/KDS'
+import Barista from './pages/Barista'
 import { Toaster } from './components/ui/toaster'
 
 function AppRoutes() {
@@ -138,6 +139,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <KDS />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/barista"
+          element={
+            <ProtectedRoute requiredRole="BARISTA">
+              <Barista />
             </ProtectedRoute>
           }
         />

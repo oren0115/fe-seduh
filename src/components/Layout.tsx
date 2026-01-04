@@ -342,7 +342,7 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-semibold truncate text-foreground">{user?.name}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {user?.role === 'OWNER' ? 'Owner' : 'Cashier'}
+                        {user?.role === 'OWNER' ? 'Owner' : user?.role === 'BARISTA' ? 'Barista' : 'Cashier'}
                       </p>
                     </div>
                   )}

@@ -16,7 +16,7 @@ interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'OWNER' | 'KASIR';
+  role: 'OWNER' | 'KASIR' | 'BARISTA';
   isActive?: boolean;
 }
 
@@ -70,7 +70,7 @@ export function ShiftStatusBar({
             </div>
             
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg md:text-xl font-bold truncate">{user?.name || 'Kasir'}</h1>
+              <h1 className="text-lg md:text-xl font-bold truncate">{user?.name || (user?.role === 'BARISTA' ? 'Barista' : 'Kasir')}</h1>
               <div className="flex items-center gap-2 md:gap-3 mt-1.5 flex-wrap">
                 {activeShift ? (
                   <>

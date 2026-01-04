@@ -19,9 +19,9 @@ export default function KDS() {
     try {
       setLoading(true);
       const response = await orderService.getByStation(station);
-      // Sort: NEW first, then IN_PROGRESS, then READY
+      // Sort: QUEUED first, then IN_PROGRESS, then READY
       const sorted = (response.data || []).sort((a, b) => {
-        const statusOrder = { NEW: 0, IN_PROGRESS: 1, READY: 2 };
+        const statusOrder = { QUEUED: 0, IN_PROGRESS: 1, READY: 2 };
         const aOrder = statusOrder[a.status] ?? 3;
         const bOrder = statusOrder[b.status] ?? 3;
         if (aOrder !== bOrder) return aOrder - bOrder;
@@ -45,7 +45,7 @@ export default function KDS() {
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       setUpdating(orderId);
-      await orderService.updateStatus(orderId, { status: newStatus });
+      await orderService.updateStatusKDS(orderId, { status: newStatus });
       await loadOrders();
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -56,7 +56,7 @@ export default function KDS() {
 
   const getStatusBadge = (status: OrderStatus) => {
     const config = {
-      NEW: { label: 'NEW', className: 'bg-blue-500 text-white', icon: Clock },
+      QUEUED: { label: 'QUEUED', className: 'bg-blue-500 text-white', icon: Clock },
       IN_PROGRESS: { label: 'IN PROGRESS', className: 'bg-orange-500 text-white', icon: Loader2 },
       READY: { label: 'READY', className: 'bg-green-500 text-white', icon: CheckCircle2 },
     };
@@ -127,7 +127,7 @@ export default function KDS() {
               key={order._id}
               className={cn(
                 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border-2 transition-all',
-                order.status === 'NEW' && 'border-blue-500',
+                order.status === 'QUEUED' && 'border-blue-500',
                 order.status === 'IN_PROGRESS' && 'border-orange-500',
                 order.status === 'READY' && 'border-green-500'
               )}
@@ -175,7 +175,7 @@ export default function KDS() {
 
               {/* Action Buttons */}
               <div className="flex gap-2">
-                {order.status === 'NEW' && (
+                {order.status === 'QUEUED' && (
                   <Button
                     onClick={() => handleUpdateStatus(order._id, 'IN_PROGRESS')}
                     disabled={updating === order._id}
