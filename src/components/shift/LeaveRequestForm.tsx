@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Clock, CheckCircle2, XCircle, Calendar } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, XCircle, Calendar, FileText, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, cn } from '@/lib/utils';
 
@@ -27,6 +27,8 @@ export function LeaveRequestForm() {
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentError, setAttachmentError] = useState<string>('');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<CreateLeaveRequestData>({
@@ -34,7 +36,6 @@ export function LeaveRequestForm() {
     startDate: '',
     endDate: '',
     reason: '',
-    attachmentUrl: '',
   });
 
   const loadLeaves = useCallback(async () => {
@@ -58,11 +59,94 @@ export function LeaveRequestForm() {
     loadLeaves();
   }, [loadLeaves]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAttachmentError('');
+    const file = e.target.files?.[0];
+    
+    if (!file) {
+      setAttachmentFile(null);
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      setAttachmentError('Invalid file type. Allowed: PDF, JPEG, PNG, WebP, DOC, DOCX');
+      setAttachmentFile(null);
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setAttachmentError('File size too large. Maximum size is 5MB.');
+      setAttachmentFile(null);
+      e.target.value = ''; // Reset input
+      return;
+    }
+
+    setAttachmentFile(file);
+  };
+
+  const handleRemoveFile = () => {
+    setAttachmentFile(null);
+    setAttachmentError('');
+    // Reset file input
+    const fileInput = document.getElementById('leave-attachment') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const getAttachmentUrl = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    // If it's already a full URL (Cloudinary), return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // If it's a local path, prepend API URL
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    return `${apiBaseUrl}${url}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setAttachmentError('');
+
+    // Validate file if provided
+    if (attachmentFile) {
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (!allowedTypes.includes(attachmentFile.type)) {
+        setAttachmentError('Invalid file type. Allowed: PDF, JPEG, PNG, WebP, DOC, DOCX');
+        return;
+      }
+      const maxSize = 5 * 1024 * 1024;
+      if (attachmentFile.size > maxSize) {
+        setAttachmentError('File size too large. Maximum size is 5MB.');
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
-      await leaveRequestService.create(formData);
+      await leaveRequestService.create(formData, attachmentFile || undefined);
       toast({
         title: 'Success',
         description: 'Leave request submitted successfully',
@@ -72,16 +156,31 @@ export function LeaveRequestForm() {
         startDate: '',
         endDate: '',
         reason: '',
-        attachmentUrl: '',
       });
+      setAttachmentFile(null);
+      setAttachmentError('');
+      // Reset file input
+      const fileInput = document.getElementById('leave-attachment') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
       loadLeaves();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
-      toast({
-        title: 'Error',
-        description: err.response?.data?.error || 'Failed to submit leave request',
-        variant: 'destructive',
-      });
+      const errorMessage = err.response?.data?.error || 'Failed to submit leave request';
+      
+      // Check if error is related to file upload
+      if (errorMessage.toLowerCase().includes('file') || 
+          errorMessage.toLowerCase().includes('upload') ||
+          errorMessage.toLowerCase().includes('invalid file type')) {
+        setAttachmentError(errorMessage);
+      } else {
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -200,17 +299,41 @@ export function LeaveRequestForm() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="leave-attachment">Attachment URL (Optional)</Label>
+                <Label htmlFor="leave-attachment">Attachment (Optional)</Label>
                 <Input
                   id="leave-attachment"
-                  type="url"
-                  value={formData.attachmentUrl}
-                  onChange={(e) => setFormData({ ...formData, attachmentUrl: e.target.value })}
-                  placeholder="https://example.com/document.pdf"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+                  onChange={handleFileChange}
                 />
                 <p className="text-xs text-muted-foreground">
-                  For medical certificates or supporting documents
+                  For medical certificates or supporting documents. Allowed: PDF, JPEG, PNG, WebP, DOC, DOCX (Max 5MB)
                 </p>
+                {attachmentError && (
+                  <p className="text-xs text-destructive font-medium">
+                    {attachmentError}
+                  </p>
+                )}
+                {attachmentFile && (
+                  <div className="mt-2 p-3 bg-muted rounded-lg flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{attachmentFile.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(attachmentFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoveFile}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
               <Button type="submit" disabled={submitting} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
@@ -258,6 +381,19 @@ export function LeaveRequestForm() {
                         </div>
                         <p className="text-sm mt-2">{leave.reason}</p>
                       </div>
+                      {leave.attachmentUrl && (
+                        <div className="mt-2">
+                          <a
+                            href={getAttachmentUrl(leave.attachmentUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                          >
+                            <FileText className="h-4 w-4" />
+                            View Attachment
+                          </a>
+                        </div>
+                      )}
                       {leave.rejectionReason && (
                         <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
                           <strong>Rejection Reason:</strong> {leave.rejectionReason}

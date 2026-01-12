@@ -38,6 +38,17 @@ import { CheckCircle2, XCircle, Clock, Filter, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate, cn } from '@/lib/utils';
 
+const getAttachmentUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  // If it's already a full URL (Cloudinary), return as is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // If it's a local path, prepend API URL
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  return `${apiBaseUrl}${url}`;
+};
+
 export function LeaveApproval() {
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -370,7 +381,7 @@ export function LeaveApproval() {
                 <div>
                   <Label className="text-muted-foreground">Attachment</Label>
                   <a
-                    href={selectedLeave.attachmentUrl}
+                    href={getAttachmentUrl(selectedLeave.attachmentUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline"

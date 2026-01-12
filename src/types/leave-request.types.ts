@@ -25,7 +25,6 @@ export interface CreateLeaveRequestData {
   startDate: string;
   endDate: string;
   reason: string;
-  attachmentUrl?: string;
 }
 
 export interface UpdateLeaveRequestData {

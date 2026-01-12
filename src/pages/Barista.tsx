@@ -216,6 +216,10 @@ export default function Barista() {
     }
   };
 
+  const handleShiftsClick = () => {
+    navigate('/shifts');
+  };
+
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -242,6 +246,7 @@ export default function Barista() {
         checkOutLoading={checkOutLoading}
         onCheckIn={checkIn}
         onCheckOut={checkOut}
+        onShiftsClick={handleShiftsClick}
         onLogout={handleLogout}
       />
 

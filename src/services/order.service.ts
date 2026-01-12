@@ -9,17 +9,6 @@ export const orderService = {
     api.post<Order[]>('/orders', data),
 
   /**
-   * Get orders by station for KDS
-   */
-  getByStation: (station: Station, status?: OrderStatus) => {
-    const params: any = { station };
-    if (status) {
-      params.status = status;
-    }
-    return api.get<Order[]>('/kds/orders', { params });
-  },
-
-  /**
    * Get orders for Barista (BAR station only, no price information)
    */
   getForBarista: (status?: OrderStatus) => {
@@ -35,12 +24,6 @@ export const orderService = {
    */
   updateStatus: (orderId: string, data: UpdateOrderStatusData) =>
     api.patch<Order>(`/orders/${orderId}/status`, data),
-
-  /**
-   * Update order status (KDS endpoint - legacy)
-   */
-  updateStatusKDS: (orderId: string, data: UpdateOrderStatusData) =>
-    api.patch<Order>(`/kds/orders/${orderId}/status`, data),
 
   /**
    * Get order by ID

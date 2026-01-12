@@ -20,8 +20,21 @@ export const leaveRequestService = {
   getById: (id: string) =>
     api.get<LeaveRequest>(`/leaves/${id}`),
   
-  create: (data: CreateLeaveRequestData) =>
-    api.post<LeaveRequest>('/leaves', data),
+  create: (data: CreateLeaveRequestData, file?: File) => {
+    const formData = new FormData();
+    formData.append('type', data.type);
+    formData.append('startDate', data.startDate);
+    formData.append('endDate', data.endDate);
+    formData.append('reason', data.reason);
+    if (file) {
+      formData.append('attachment', file);
+    }
+    return api.post<LeaveRequest>('/leaves', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   
   approve: (id: string) =>
     api.patch<LeaveRequest>(`/leaves/${id}/approve`, { status: 'APPROVED' }),
